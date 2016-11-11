@@ -1,0 +1,32 @@
+{
+  "name": "purescript-google-cloud-datastore",
+  "authors": [
+    "James Thompson <jamesthompsonoxford@gmail.com>"
+  ],
+  "description": "Purescript wrapper for Node.js google-cloud SDK datastore library",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-argonaut-core": "^2.0.0",
+    "purescript-argonaut-traversals": "^2.0.0",
+    "purescript-profunctor-lenses": "^2.0.0",
+    "purescript-argonaut-codecs": "^2.0.0",
+    "purescript-transformers": "^2.0.1",
+    "purescript-eff": "^2.0.0",
+    "purescript-eff-functions": "^2.0.0",
+    "purescript-nonempty": "^3.0.0",
+    "purescript-aff": "^2.0.1",
+    "purescript-foreign": "^3.0.0",
+    "purescript-aff-promise": "^0.4.0",
+    "purescript-newtype": "^1.1.0",
+    "purescript-tailrec": "^2.0.0"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^2.0.0",
+    "purescript-test-unit": "^10.0.1"
+  }
+}
