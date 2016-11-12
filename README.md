@@ -1,4 +1,5 @@
 # purescript-google-cloud-datastore
+[![Pursuit](https://pursuit.purescript.org/packages/purescript-google-cloud-datastore/badge)](https://pursuit.purescript.org/packages/purescript-google-cloud-datastore)
 
 A wrapper library around the [Google Cloud Node.js Datastore Library](https://googlecloudplatform.github.io/google-cloud-node/#/).
 
