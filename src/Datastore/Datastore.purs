@@ -1,4 +1,50 @@
-module GoogleCloud.Datastore where
+module GoogleCloud.Datastore
+  ( Consistency(..)
+  , Credentials(..)
+  , CursorToken(..)
+  , EndCursor(..)
+  , FilterOperator(..)
+  , GetOptions(..)
+  , Id(..)
+  , InfoCallbackData(..)
+  , KeyPathConfig(..)
+  , Kind(..)
+  , MaxApiCalls(..)
+  , Name(..)
+  , Namespace(..)
+  , OrderingType(..)
+  , ProjectId(..)
+  , SaveMethod(..)
+  , class HasDatastore
+  , _datastore
+  , DATASTORE
+  , Datastore
+  , Key
+  , Query
+  , configuredDatastore
+  , createQuery
+  , end
+  , filter
+  , get
+  , groupBy
+  , hasAncestor
+  , incompleteKey
+  , insert
+  , keyWithConfig
+  , keyWithId
+  , limit
+  , mkDatastore
+  , offset
+  , order
+  , parameterizeQuery
+  , queryRun
+  , queryRunUntilComplete
+  , save
+  , select
+  , start
+  , update
+  , upsert
+  ) where
 
 import Prelude                     (Unit, bind, (<<<), ($),
                                     class Show, show, pure,
@@ -23,7 +69,8 @@ import Data.Array                  as A
 import Data.Either                 (Either(..))
 import Data.Foldable               (class Foldable, foldMap)
 import Data.Function.Eff           (EffFn2, EffFn3, runEffFn3, runEffFn2)
-import Data.Function.Uncurried     (Fn2, runFn2, Fn3, runFn3, Fn4, runFn4, Fn1, runFn1)
+import Data.Function.Uncurried     (Fn2, runFn2, Fn3, runFn3, Fn4, runFn4,
+                                    Fn1, runFn1)
 import Data.Int                    (toNumber)
 import Data.Lens                   ((^.), use, Getter, view, preview, (^?))
 import Data.Lens.Index             (ix)
@@ -46,7 +93,7 @@ newtype Name        = Name String
 newtype Namespace   = Namespace String
 newtype CursorToken = CursorToken String
 newtype MaxApiCalls = MaxApiCalls Int
-newtype EndCursor = EndCursor String
+newtype EndCursor   = EndCursor String
 
 derive instance newtypeEndCursor :: Newtype EndCursor _
 
@@ -61,6 +108,16 @@ data KeyPathConfig
 data Consistency
   = Strong
   | Eventual
+
+data SaveMethod
+  = Insert
+  | Update
+  | Upsert
+
+instance showSaveMethod :: Show SaveMethod where
+  show Insert = "insert"
+  show Update = "update"
+  show Upsert = "upsert"
 
 data InfoCallbackData
   = MoreResultsAfterLimit EndCursor
@@ -79,6 +136,25 @@ instance showConsistency :: Show Consistency where
 data GetOptions
   = GetOptions (Maybe Consistency) (Maybe MaxApiCalls)
 
+data FilterOperator
+  = Gt
+  | Lt
+  | GtEq
+  | LtEq
+  | Eq
+
+instance showFilterOperator :: Show FilterOperator where
+  show op = case op of
+    Gt   -> ">"
+    Lt   -> "<"
+    GtEq -> ">="
+    LtEq -> "<="
+    Eq   -> "="
+
+-- | Evidence of a datastore object from a value of type s, used as the state.
+class HasDatastore s where
+  _datastore :: Getter s s Datastore Datastore
+
 -- | The type of a Datastore object
 foreign import data Datastore :: *
 
@@ -91,20 +167,8 @@ foreign import data Query :: *
 -- | The effect associated with using the Datastore module
 foreign import data DATASTORE :: !
 
--- | Evidence of a datastore object from a value of type s, used as the state.
-class HasDatastore s where
-  _datastore :: Getter s s Datastore Datastore
-
--- | Create an instance of the Datastore object
 foreign import gcloudDatastore
   :: forall eff. Eff (datastore :: DATASTORE | eff) Datastore
-
--- | Create an auto-parameterized instance of the Datastore object when running in the GCloud
-mkDatastore
-  :: forall eff
-   . Eff (datastore :: DATASTORE | eff) Datastore
-mkDatastore =
-  gcloudDatastore
 
 foreign import configuredDatastoreImpl
   :: forall eff
@@ -112,6 +176,121 @@ foreign import configuredDatastoreImpl
       ProjectId
       Credentials
       Datastore
+
+foreign import keyImpl
+  :: Fn2
+      Datastore
+      Json
+      Key
+
+foreign import getImplNoOptions
+  :: Fn2
+      Datastore
+      (Array Key)
+      (Promise Json)
+
+foreign import getImplWithOptions
+  :: Fn3
+      Datastore
+      (Array Key)
+      Json
+      (Promise Json)
+
+foreign import saveImpl
+  :: Fn2
+      Datastore
+      Json
+      (Promise Json)
+
+foreign import createQueryImplNoNamespace
+  :: forall eff
+   . EffFn2 (datastore :: DATASTORE | eff)
+      Datastore
+      String
+      Query
+
+foreign import createQueryImplWithNamespace
+  :: forall eff
+   . EffFn3 (datastore :: DATASTORE | eff)
+      Datastore
+      String
+      String
+      Query
+
+foreign import endImpl
+  :: Fn2
+      String
+      Query
+      Query
+
+foreign import startImpl
+  :: Fn2
+      String
+      Query
+      Query
+
+foreign import hasAncestorImpl
+  :: Fn2
+      Key
+      Query
+      Query
+
+foreign import limitImpl
+  :: Fn2
+      Int
+      Query
+      Query
+
+foreign import offsetImpl
+  :: Fn2
+      Int
+      Query
+      Query
+
+foreign import filterImpl
+  :: Fn4
+      String
+      String
+      Json
+      Query
+      Query
+
+foreign import groupByImpl
+  :: Fn2
+      (Array String)
+      Query
+      Query
+
+foreign import selectImpl
+  :: Fn2
+      (Array String)
+      Query
+      Query
+
+foreign import orderImpl
+  :: Fn3
+      String
+      Json
+      Query
+      Query
+
+foreign import queryRunOptionsImpl
+  :: Fn2
+      Query
+      Json
+      (Promise Json)
+
+foreign import queryRunNoOptionsImpl
+  :: Fn1
+      Query
+      (Promise Json)
+
+-- | Create an auto-parameterized instance of the Datastore object when running in the GCloud
+mkDatastore
+  :: forall eff
+   . Eff (datastore :: DATASTORE | eff) Datastore
+mkDatastore =
+  gcloudDatastore
 
 -- | Create a customized instance of the Datastore object with credentials
 configuredDatastore
@@ -121,12 +300,6 @@ configuredDatastore
   -> Eff (datastore :: DATASTORE | eff) Datastore
 configuredDatastore p c =
   runEffFn2 configuredDatastoreImpl p c
-
-foreign import keyImpl
-  :: Fn2
-      Datastore
-      Json
-      Key
 
 -- | Create an incomplete key given only a Kind
 incompleteKey
@@ -201,19 +374,6 @@ instance encodeOptionsJson :: EncodeJson GetOptions where
   encodeJson (GetOptions Nothing Nothing)                        =
     fromObject (fromFoldable [])
 
-foreign import getImplNoOptions
-  :: Fn2
-      Datastore
-      (Array Key)
-      (Promise Json)
-
-foreign import getImplWithOptions
-  :: Fn3
-      Datastore
-      (Array Key)
-      Json
-      (Promise Json)
-
 -- | Get the keys, with optional configuration parameters
 get
   :: forall s eff a f
@@ -239,22 +399,6 @@ parseEntity json =
   case traverse decodeJson (json^._Array >>= view _Array) of
     Right x -> pure x
     Left e  -> throwError (error e)
-
-data SaveMethod
-  = Insert
-  | Update
-  | Upsert
-
-instance showSaveMethod :: Show SaveMethod where
-  show Insert = "insert"
-  show Update = "update"
-  show Upsert = "upsert"
-
-foreign import saveImpl
-  :: Fn2
-      Datastore
-      Json
-      (Promise Json)
 
 -- | Save the data for the key
 save
@@ -303,21 +447,6 @@ upsert
 upsert key entityData =
   save key Upsert entityData
 
-foreign import createQueryImplNoNamespace
-  :: forall eff
-   . EffFn2 (datastore :: DATASTORE | eff)
-      Datastore
-      String
-      Query
-
-foreign import createQueryImplWithNamespace
-  :: forall eff
-   . EffFn3 (datastore :: DATASTORE | eff)
-      Datastore
-      String
-      String
-      Query
-
 -- | Create a Query object
 createQuery
   :: forall s eff f
@@ -333,6 +462,7 @@ createQuery (Just (Namespace ns)) (Kind k) params = do
   ds <- use _datastore
   lift $ parameterizeQuery params <$> liftEff (runEffFn3 createQueryImplWithNamespace ds ns k)
 
+-- | Parameterize the query by folding over the given endomorphisms
 parameterizeQuery
   :: forall f
    . Foldable f
@@ -342,12 +472,6 @@ parameterizeQuery
 parameterizeQuery xs q =
   (unwrap (foldMap Endo xs)) q
 
-foreign import endImpl
-  :: Fn2
-      String
-      Query
-      Query
-
 -- | Set an ending cursor to a query
 end
   :: CursorToken
@@ -355,12 +479,6 @@ end
   -> Query
 end (CursorToken ct) q =
   runFn2 endImpl ct q
-
-foreign import startImpl
-  :: Fn2
-      String
-      Query
-      Query
 
 -- | Set a starting cursor to a query
 start
@@ -370,12 +488,6 @@ start
 start (CursorToken ct) q =
   runFn2 startImpl ct q
 
-foreign import hasAncestorImpl
-  :: Fn2
-      Key
-      Query
-      Query
-
 -- | Filter a query by ancestors
 hasAncestor
   :: Key
@@ -383,12 +495,6 @@ hasAncestor
   -> Query
 hasAncestor k q =
   runFn2 hasAncestorImpl k q
-
-foreign import limitImpl
-  :: Fn2
-      Int
-      Query
-      Query
 
 -- | Limit the number of returned entities
 limit
@@ -398,12 +504,6 @@ limit
 limit count q =
   runFn2 limitImpl count q
 
-foreign import offsetImpl
-  :: Fn2
-      Int
-      Query
-      Query
-
 -- | Offset count for the query entities
 offset
   :: Int
@@ -411,29 +511,6 @@ offset
   -> Query
 offset os q =
   runFn2 offsetImpl os q
-
-data FilterOperator
-  = Gt
-  | Lt
-  | GtEq
-  | LtEq
-  | Eq
-
-instance showFilterOperator :: Show FilterOperator where
-  show op = case op of
-    Gt   -> ">"
-    Lt   -> "<"
-    GtEq -> ">="
-    LtEq -> "<="
-    Eq   -> "="
-
-foreign import filterImpl
-  :: Fn4
-      String
-      String
-      Json
-      Query
-      Query
 
 -- | Add a filter to the query
 filter
@@ -447,28 +524,6 @@ filter
 filter prop op val q =
   runFn4 filterImpl prop (show op) (encodeJson val) q
 
-foreign import groupByImpl
-  :: Fn2
-      (Array String)
-      Query
-      Query
-
--- | Group by properties in a query
-groupBy
-  :: forall f
-   . Foldable f
-  => NonEmpty f String
-  -> Query
-  -> Query
-groupBy props q =
-  runFn2 groupByImpl (A.fromFoldable props) q
-
-foreign import selectImpl
-  :: Fn2
-      (Array String)
-      Query
-      Query
-
 -- | Select only the given properties
 select
   :: forall f
@@ -479,12 +534,15 @@ select
 select props q =
   runFn2 selectImpl (A.fromFoldable props) q
 
-foreign import orderImpl
-  :: Fn3
-      String
-      Json
-      Query
-      Query
+-- | Group by properties in a query
+groupBy
+  :: forall f
+   . Foldable f
+  => NonEmpty f String
+  -> Query
+  -> Query
+groupBy props q =
+  runFn2 groupByImpl (A.fromFoldable props) q
 
 -- | Order only the given property with ascending or descending
 order
@@ -506,17 +564,6 @@ order prop Ascending q =
          (fromObject (fromFoldable [
                        Tuple "descending" (fromBoolean false)]))
          q
-
-foreign import queryRunOptionsImpl
-  :: Fn2
-      Query
-      Json
-      (Promise Json)
-
-foreign import queryRunNoOptionsImpl
-  :: Fn1
-      Query
-      (Promise Json)
 
 -- | Run a query through the Promise API, returning the result
 -- | entities along with the query cursor information
