@@ -6,11 +6,13 @@ WIP: At present only supports the main query and non-transactional datastore beh
 
 WIP: Does not yet support transactional behaviour.
 
-## Testing
+# Getting Started
+
+## Testing and Example
 
 Ensure you have the [Google Cloud (Cloud SDK)](https://cloud.google.com/sdk/) installed.
 
-Ensure you export the port information logged when running the emulator thus:
+Ensure you export the port environment variable which is logged when running the emulator thus:
 
 ```
 > gcloud beta emulators datastore start --no-legacy
@@ -19,5 +21,11 @@ Ensure you export the port information logged when running the emulator thus:
 Then run the test with:
 
 ```
+> bower install
 > pulp test
 ```
+
+See the [test](https://github.com/jamesthompson/purescript-google-cloud-datastore/blob/master/test/Main.purs) for an example of usage.
+
+It is recommended that you familiarise yourself with the underlying [google-cloud node.js library](https://googlecloudplatform.github.io/google-cloud-node/#/docs/google-cloud/0.43.0/datastore).
+
