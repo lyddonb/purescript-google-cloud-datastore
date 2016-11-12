@@ -10,6 +10,14 @@
     "bower_components",
     "output"
   ],
+  "moduleType": [
+    "node"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jamesthompson/purescript-google-cloud-datastore.git"
+  },
   "dependencies": {
     "purescript-argonaut-core": "^2.0.0",
     "purescript-argonaut-traversals": "^2.0.0",
