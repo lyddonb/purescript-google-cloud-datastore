@@ -13,6 +13,9 @@ WIP: Does not yet support transactional behaviour.
 
 Ensure you have the [Google Cloud (Cloud SDK)](https://cloud.google.com/sdk/) installed.
 
+You'll need to be sure to have installed the `"@google-cloud/datastore": "^0.5.0"` dependency from npm.
+This is included in the package.json file for your convenience.
+
 Ensure you export the port environment variable which is logged when running the emulator thus:
 
 ```
