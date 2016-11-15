@@ -62,7 +62,9 @@ main = do
           save key Upsert testData2
           save key2 Upsert testData
           getres :: Array HereIsData <- get (key :| []) Nothing
-          q <- createQuery Nothing (Kind "FOO") []
+          q <- createQuery Nothing (Kind "FOO") [
+            limit 2
+          ]
           qres :: Array HereIsData <- lift (queryRunUntilComplete q (Just Eventual))
           pure qres
 

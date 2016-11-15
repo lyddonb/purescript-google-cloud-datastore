@@ -70,7 +70,7 @@ import Data.Lens ((^.), use, Getter, view, preview, (^?))
 import Data.Lens.Index (ix)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid.Endo (Endo(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype, unwrap, ala)
 import Data.NonEmpty (NonEmpty)
 import Data.Semigroup ((<>))
 import Data.StrMap (fromFoldable)
@@ -464,8 +464,8 @@ parameterizeQuery
   => f (Query -> Query)
   -> Query
   -> Query
-parameterizeQuery xs q =
-  (unwrap (foldMap Endo xs)) q
+parameterizeQuery =
+  ala Endo foldMap
 
 -- | Set an ending cursor to a query
 end
