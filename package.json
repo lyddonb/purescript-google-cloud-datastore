@@ -6,18 +6,17 @@
     "test": "pulp test"
   },
   "license": "MIT",
-  "repository":
-  {
-    "type" : "git",
-    "url" : "https://github.com/jamesthompson/purescript-google-cloud-datastore.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamesthompson/purescript-google-cloud-datastore.git"
   },
   "dependencies": {
-    "@google-cloud/datastore": "^0.5.0"
+    "@google-cloud/datastore": "^1.1.0"
   },
   "devDependencies": {
-    "bower": "^1.7.9",
-    "pulp": "^9.1.0",
-    "purescript": "^0.10.2",
-    "purescript-psa": "^0.3.9"
+    "bower": "^1.8.0",
+    "pulp": "^11.0.0",
+    "purescript": "^0.11.4",
+    "purescript-psa": "^0.5.1"
   }
 }
