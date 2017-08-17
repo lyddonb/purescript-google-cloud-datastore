@@ -48,7 +48,7 @@ module GoogleCloud.Datastore
 
 import Data.Array as A
 import Control.Monad.Aff (Aff)
-import Control.Monad.Eff (Eff)
+import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (error)
 import Control.Monad.Error.Class (throwError)
@@ -63,7 +63,7 @@ import Data.Argonaut.Prisms (_Array, _Object, _String)
 import Data.Array ((!!))
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap)
-import Data.Function.Eff (EffFn2, EffFn3, runEffFn3, runEffFn2)
+import Control.Monad.Eff.Uncurried (EffFn2, EffFn3, runEffFn3, runEffFn2)
 import Data.Function.Uncurried (Fn2, runFn2, Fn3, runFn3, Fn4, runFn4, Fn1, runFn1)
 import Data.Int (toNumber)
 import Data.Lens ((^.), use, Getter, view, preview, (^?))
@@ -151,16 +151,16 @@ class HasDatastore s where
   _datastore :: Getter s s Datastore Datastore
 
 -- | The type of a Datastore object
-foreign import data Datastore :: *
+foreign import data Datastore :: Type
 
 -- | The type of a Key object
-foreign import data Key :: *
+foreign import data Key :: Type
 
 -- | The type of a Query object
-foreign import data Query :: *
+foreign import data Query :: Type
 
 -- | The effect associated with using the Datastore module
-foreign import data DATASTORE :: !
+foreign import data DATASTORE :: Effect
 
 foreign import gcloudDatastore
   :: forall eff. Eff (datastore :: DATASTORE | eff) Datastore
@@ -282,15 +282,13 @@ foreign import queryRunNoOptionsImpl
 
 -- | Create an auto-parameterized instance of the Datastore object when running in the GCloud
 mkDatastore
-  :: forall eff
-   . Eff (datastore :: DATASTORE | eff) Datastore
+  :: forall eff . Eff (datastore :: DATASTORE | eff) Datastore
 mkDatastore =
   gcloudDatastore
 
 -- | Create a customized instance of the Datastore object with credentials
 configuredDatastore
-  :: forall eff
-   . ProjectId
+  :: forall eff . ProjectId
   -> Credentials
   -> Eff (datastore :: DATASTORE | eff) Datastore
 configuredDatastore p c =
@@ -298,8 +296,7 @@ configuredDatastore p c =
 
 -- | Create an incomplete key given only a Kind
 incompleteKey
-  :: forall s eff
-   . HasDatastore s
+  :: forall s eff . HasDatastore s
   => Kind
   -> StateT s (Aff (datastore :: DATASTORE | eff)) Key
 incompleteKey (Kind k) = do
@@ -308,9 +305,7 @@ incompleteKey (Kind k) = do
   where key = fromString k
 
 -- | Create a key with an id path
-keyWithId
-  :: forall s eff
-   . HasDatastore s
+keyWithId :: forall s eff . HasDatastore s
   => Kind
   -> Id
   -> StateT s (Aff (datastore :: DATASTORE | eff)) Key
@@ -320,9 +315,7 @@ keyWithId (Kind k) (Id i) = do
   where key = fromArray [ fromString k, fromNumber $ toNumber i ]
 
 -- | Create a key with an named path
-keyWithName
-  :: forall s eff
-   . HasDatastore s
+keyWithName :: forall s eff . HasDatastore s
   => Kind
   -> Name
   -> StateT s (Eff (datastore :: DATASTORE | eff)) Key
@@ -333,8 +326,7 @@ keyWithName (Kind k) (Name n) = do
 
 -- | Create a key with a namespace and a key path configuration
 keyWithConfig
-  :: forall s eff
-   . HasDatastore s
+  :: forall s eff . HasDatastore s
   => Namespace
   -> KeyPathConfig
   -> StateT s (Eff (datastore :: DATASTORE | eff)) Key
@@ -371,8 +363,7 @@ instance encodeOptionsJson :: EncodeJson GetOptions where
 
 -- | Get the keys, with optional configuration parameters
 get
-  :: forall s eff a f
-   . (DecodeJson a, HasDatastore s, Foldable f)
+  :: forall s eff a f . DecodeJson a => HasDatastore s => Foldable f
   => NonEmpty f Key
   -> Maybe GetOptions
   -> StateT s (Aff (datastore :: DATASTORE | eff)) (Array a)
@@ -386,8 +377,7 @@ get ks (Just os) = do
   lift (parseEntity res)
 
 parseEntity
-  :: forall a eff
-   . DecodeJson a
+  :: forall a eff . DecodeJson a
   => Json
   -> Aff eff (Array a)
 parseEntity json =
@@ -397,15 +387,14 @@ parseEntity json =
 
 -- | Save the data for the key
 save
-  :: forall s eff a
-   . (EncodeJson a, HasDatastore s)
+  :: forall s eff a . EncodeJson a => HasDatastore s
   => Key
   -> SaveMethod
   -> a
   -> StateT s (Aff (datastore :: DATASTORE | eff)) Unit
 save key sm entityData = do
     ds <- use _datastore
-    lift (toAff (runFn2 saveImpl ds obj))
+    _ <- lift (toAff (runFn2 saveImpl ds obj))
     pure unit
   where obj = (fromObject (fromFoldable [
                             Tuple "key" (unsafeCoerce key)
@@ -414,8 +403,7 @@ save key sm entityData = do
 
 -- | Insert the data for the key
 insert
-  :: forall s eff a
-   . (EncodeJson a, HasDatastore s)
+  :: forall s eff a . EncodeJson a => HasDatastore s
   => Key
   -> a
   -> StateT s (Aff (datastore :: DATASTORE | eff)) Unit
@@ -424,8 +412,7 @@ insert key entityData =
 
 -- | Update the data for the key
 update
-  :: forall s eff a
-   . (EncodeJson a, HasDatastore s)
+  :: forall s eff a . EncodeJson a => HasDatastore s
   => Key
   -> a
   -> StateT s (Aff (datastore :: DATASTORE | eff)) Unit
@@ -434,8 +421,7 @@ update key entityData =
 
 -- | Upsert the data for the key
 upsert
-  :: forall s eff a
-   . (EncodeJson a, HasDatastore s)
+  :: forall s eff a . EncodeJson a => HasDatastore s
   => Key
   -> a
   -> StateT s (Aff (datastore :: DATASTORE | eff)) Unit
@@ -444,8 +430,7 @@ upsert key entityData =
 
 -- | Create a Query object
 createQuery
-  :: forall s eff f
-   . (HasDatastore s, Foldable f)
+  :: forall s eff f . HasDatastore s => Foldable f
   => Maybe Namespace
   -> Kind
   -> f (Query -> Query)
@@ -459,8 +444,7 @@ createQuery (Just (Namespace ns)) (Kind k) params = do
 
 -- | Parameterize the query by folding over the given endomorphisms
 parameterizeQuery
-  :: forall f
-   . Foldable f
+  :: forall f . Foldable f
   => f (Query -> Query)
   -> Query
   -> Query
@@ -509,8 +493,7 @@ offset os q =
 
 -- | Add a filter to the query
 filter
-  :: forall a
-   . EncodeJson a
+  :: forall a . EncodeJson a
   => String
   -> FilterOperator
   -> a
@@ -521,8 +504,7 @@ filter prop op val q =
 
 -- | Select only the given properties
 select
-  :: forall f
-   . Foldable f
+  :: forall f . Foldable f
   => NonEmpty f String
   -> Query
   -> Query
@@ -531,8 +513,7 @@ select props q =
 
 -- | Group by properties in a query
 groupBy
-  :: forall f
-   . Foldable f
+  :: forall f . Foldable f
   => NonEmpty f String
   -> Query
   -> Query
@@ -541,8 +522,7 @@ groupBy props q =
 
 -- | Order only the given property with ascending or descending
 order
-  :: forall f
-   . Foldable f
+  :: forall f . Foldable f
   => String
   -> OrderingType
   -> Query
@@ -563,8 +543,7 @@ order prop Ascending q =
 -- | Run a query through the Promise API, returning the result
 -- | entities along with the query cursor information
 queryRun
-  :: forall eff a
-   . DecodeJson a
+  :: forall eff a . DecodeJson a
   => Query
   -> Maybe Consistency
   -> Aff (datastore :: DATASTORE | eff) (Tuple (Array a) InfoCallbackData)
@@ -578,8 +557,7 @@ queryRun q (Just c) = do
 
 -- | Run a query through the Promise API, returning the completed result by appending paginated results
 queryRunUntilComplete
-  :: forall eff a
-   . DecodeJson a
+  :: forall eff a . DecodeJson a
   => Query
   -> Maybe Consistency
   -> Aff (datastore :: DATASTORE | eff) (Array a)
@@ -602,8 +580,7 @@ queryRunUntilComplete q c = tailRecM go { mc: c, q: q, icb: Nothing, res: [] }
             pure (Done params.res)
 
 parseInfoCallback
-  :: forall eff
-   . Json
+  :: forall eff . Json
   -> Aff eff InfoCallbackData
 parseInfoCallback json =
      maybe (throwError (error "Unable to parse query info callback")) pure icb
