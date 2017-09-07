@@ -28,8 +28,18 @@ exports.saveImpl = function(datastore, entities) {
   return datastore.save(entities);
 };
 
+exports.allocateIdsImpl = function(datastore, ik, n) {
+  return datastore.allocateIds(ik, n);
+};
+
+exports.handleAllocateImpl = function(allocateResult) {
+  return {
+    "keys": allocateResult[0],
+    "response": allocateResult[1]
+  }
+}
+
 // TODO:
-// allocateIds
 // createQuery
 // createReadStream
 // delete
