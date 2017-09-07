@@ -4,8 +4,6 @@ module GoogleCloud.Datastore.Query
   , FilterOperator(..)
   , InfoCallbackData(..)
   , OrderingType
-  , Query
-  , createQuery
   , end
   , filter
   , groupBy
@@ -13,7 +11,6 @@ module GoogleCloud.Datastore.Query
   , limit
   , offset
   , order
-  , parameterizeQuery
   , queryRun
   , queryRunUntilComplete
   , start
@@ -21,26 +18,22 @@ module GoogleCloud.Datastore.Query
 
 import Data.Array as A
 import Control.Monad.Aff (Aff)
-import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (error)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Rec.Class (Step(..), tailRecM)
-import Control.Monad.State.Trans (StateT)
-import Control.Monad.Trans.Class (lift)
 import Control.Promise (toAff, Promise)
 import Data.Argonaut.Core (Json, fromString, fromObject, fromBoolean)
 import Data.Argonaut.Decode (class DecodeJson)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Argonaut.Prisms (_Array, _Object, _String)
 import Data.Array ((!!))
-import Data.Foldable (class Foldable, foldMap)
 import Control.Monad.Eff.Uncurried (EffFn2, EffFn3, runEffFn3, runEffFn2)
+import Data.Foldable (class Foldable)
 import Data.Function.Uncurried (Fn2, runFn2, Fn3, runFn3, Fn4, runFn4, Fn1, runFn1)
-import Data.Lens ((^.), use, preview, (^?))
+import Data.Lens (preview, (^.), (^?))
 import Data.Lens.Index (ix)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Monoid.Endo (Endo(..))
-import Data.Newtype (class Newtype, unwrap, ala)
+import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty)
 import Data.Semigroup ((<>))
 import Data.StrMap (fromFoldable)
@@ -82,23 +75,6 @@ instance showFilterOperator :: Show FilterOperator where
     LtEq -> "<="
     Eq   -> "="
 
--- | The type of a Query object
-foreign import data Query :: Type
-
-foreign import createQueryImplNoNamespace
-  :: forall eff
-   . EffFn2 (datastore :: DATASTORE | eff)
-      Datastore
-      String
-      Query
-
-foreign import createQueryImplWithNamespace
-  :: forall eff
-   . EffFn3 (datastore :: DATASTORE | eff)
-      Datastore
-      String
-      String
-      Query
 
 foreign import endImpl
   :: Fn2
@@ -167,29 +143,6 @@ foreign import runNoOptionsImpl
   :: Fn1
       Query
       (Promise Json)
-
--- | Create a Query object
-createQuery
-  :: forall s eff f . HasDatastore s => Foldable f
-  => Maybe Namespace
-  -> Kind
-  -> f (Query -> Query)
-  -> StateT s (Aff (datastore :: DATASTORE | eff)) Query
-createQuery Nothing               (Kind k) params = do
-  ds <- use _datastore
-  lift $ parameterizeQuery params <$> liftEff (runEffFn2 createQueryImplNoNamespace ds k)
-createQuery (Just (Namespace ns)) (Kind k) params = do
-  ds <- use _datastore
-  lift $ parameterizeQuery params <$> liftEff (runEffFn3 createQueryImplWithNamespace ds ns k)
-
--- | Parameterize the query by folding over the given endomorphisms
-parameterizeQuery
-  :: forall f . Foldable f
-  => f (Query -> Query)
-  -> Query
-  -> Query
-parameterizeQuery =
-  ala Endo foldMap
 
 -- | Set an ending cursor to a query
 end

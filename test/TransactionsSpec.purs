@@ -15,8 +15,8 @@ import GoogleCloud.Datastore             (class HasDatastore, Consistency(..),
                                           Credentials(..), DATASTORE, Datastore, 
                                           Id(..), Kind(..), ProjectId(..), 
                                           SaveMethod( ..), configuredDatastore, 
-                                          keyWithId)
-import GoogleCloud.Datastore.Query       (createQuery, limit, queryRunUntilComplete)
+                                          createQuery, keyWithId)
+import GoogleCloud.Datastore.Query       (limit, queryRunUntilComplete)
 import GoogleCloud.Datastore.Transaction (class HasTransaction, mkTransaction, 
                                           transactionCommit, transactionGet, 
                                           transactionRun, transactionSave)

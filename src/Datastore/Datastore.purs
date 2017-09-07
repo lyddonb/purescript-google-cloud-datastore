@@ -15,9 +15,11 @@ module GoogleCloud.Datastore
   , DATASTORE
   , Datastore
   , Key(..)
+  , Query
   , allocateIds
   , configuredDatastore
   , createKey
+  , createQuery
   , get
   , getId
   , getKind
@@ -29,6 +31,7 @@ module GoogleCloud.Datastore
   , keyWithConfig
   , keyWithId
   , mkDatastore
+  , parameterizeQuery
   , parseEntity
   , save
   , update
@@ -37,6 +40,7 @@ module GoogleCloud.Datastore
 
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff, kind Effect)
+import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (error)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State.Trans (StateT)
@@ -48,9 +52,11 @@ import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Argonaut.Prisms (_Array)
 import Data.Array (snoc)
 import Data.Either (Either(..))
-import Data.Foldable (foldl)
+import Data.Foldable (class Foldable, foldl, foldMap)
 import Data.Generic (class Generic, gEq, gShow)
-import Control.Monad.Eff.Uncurried (EffFn2, runEffFn2)
+import Data.Monoid.Endo (Endo(..))
+import Data.Newtype (ala)
+import Control.Monad.Eff.Uncurried (EffFn2, runEffFn2, EffFn3, runEffFn3)
 import Data.Function.Uncurried (Fn1, runFn1, Fn2, runFn2, Fn3, runFn3)
 import Data.Int as DI
 import Data.Lens ((^.), use, Getter, view)
@@ -58,7 +64,8 @@ import Data.Maybe (Maybe(..))
 import Data.StrMap (fromFoldable)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Prelude (class Eq, class Show, Unit, bind, ($), show, pure, (>>=), unit)
+import Prelude (class Eq, class Show, Unit, bind, ($), show, pure, (>>=), (<$>),  
+                unit)
 import Unsafe.Coerce (unsafeCoerce)
 
 
@@ -151,6 +158,9 @@ foreign import data AllocateResponseImpl :: Type
 -- | The effect associated with using the Datastore module
 foreign import data DATASTORE :: Effect
 
+-- | The type of a Query object
+foreign import data Query :: Type
+
 foreign import gcloudDatastore
   :: forall eff. Eff (datastore :: DATASTORE | eff) Datastore
 
@@ -197,6 +207,20 @@ foreign import allocateIdsImpl
 foreign import handleAllocateImpl 
   :: Fn1 AllocateResponseImpl AllocateResponse
 
+foreign import createQueryImplNoNamespace
+  :: forall eff
+   . EffFn2 (datastore :: DATASTORE | eff)
+      Datastore
+      String
+      Query
+
+foreign import createQueryImplWithNamespace
+  :: forall eff
+   . EffFn3 (datastore :: DATASTORE | eff)
+      Datastore
+      String
+      String
+      Query
 
 -- | Create an auto-parameterized instance of the Datastore object when running in the GCloud
 mkDatastore
@@ -383,3 +407,28 @@ allocateIds ks n = do
   res <- lift (toAff (runFn3 allocateIdsImpl ds (unsafeCoerce ks) n))
   r <- lift $ pure (runFn1 handleAllocateImpl res)
   pure $ r.keys
+
+-- | Create a Query object
+createQuery
+  :: forall s eff f . HasDatastore s => Foldable f
+  => Maybe Namespace
+  -> Kind
+  -> f (Query -> Query)
+  -> StateT s (Aff (datastore :: DATASTORE | eff)) Query
+createQuery Nothing               (Kind k) params = do
+  ds <- use _datastore
+  lift $ parameterizeQuery params <$> liftEff (runEffFn2 createQueryImplNoNamespace ds k)
+createQuery (Just (Namespace ns)) (Kind k) params = do
+  ds <- use _datastore
+  lift $ parameterizeQuery params <$> liftEff (runEffFn3 createQueryImplWithNamespace ds ns k)
+
+-- | Parameterize the query by folding over the given endomorphisms
+parameterizeQuery
+  :: forall f . Foldable f
+  => f (Query -> Query)
+  -> Query
+  -> Query
+parameterizeQuery =
+  ala Endo foldMap
+
+

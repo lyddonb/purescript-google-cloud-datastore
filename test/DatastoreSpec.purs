@@ -12,7 +12,7 @@ import Control.Monad.Trans.Class         (lift)
 import Data.Foldable                     (and)
 import Data.Maybe                        (Maybe(..))
 import GoogleCloud.Datastore             
-import GoogleCloud.Datastore.Query       (createQuery, limit, queryRunUntilComplete)
+import GoogleCloud.Datastore.Query       (limit, queryRunUntilComplete)
 import Test.Spec                         (Spec,describe, it)
 import Test.Spec.Assertions              (shouldEqual)
 import Test.Data

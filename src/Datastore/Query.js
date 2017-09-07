@@ -1,13 +1,5 @@
 "use strict";
 
-exports.createQueryImplNoNamespace = function(datastore, kind) {
-  return datastore.createQuery(kind);
-};
-
-exports.createQueryImplWithNamespace = function(datastore, namespace, kind) {
-  return datastore.createQuery(namespace, kind);
-};
-
 exports.endImpl = function(cursorToken, query) {
   return query.end(cursorToken);
 };

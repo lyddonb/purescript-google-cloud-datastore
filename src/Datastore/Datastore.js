@@ -39,8 +39,15 @@ exports.handleAllocateImpl = function(allocateResult) {
   }
 }
 
+exports.createQueryImplNoNamespace = function(datastore, kind) {
+  return datastore.createQuery(kind);
+};
+
+exports.createQueryImplWithNamespace = function(datastore, namespace, kind) {
+  return datastore.createQuery(namespace, kind);
+};
+
 // TODO:
-// createQuery
 // createReadStream
 // delete
 // double
